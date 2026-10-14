@@ -11,6 +11,46 @@ class JournalPage extends StatefulWidget {
   State<JournalPage> createState() => _JournalPageState();
 }
 
+class HeaderClipper extends CustomClipper<Path>{
+  @override
+  Path getClip(Size size){
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    path.quadraticBezierTo(
+      size.width * 0.6, size.height - 60,
+      size.width, size.height - 40,
+    );
+
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class CardClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    const cut = 20.0;
+    final path = Path();
+    path.moveTo(16, 0);
+    path.lineTo(size.width - cut, 0);
+    path.lineTo(size.width, cut);
+    path.lineTo(size.width, size.height - 16);
+    path.quadraticBezierTo(size.width, size.height, size.width - 16, size.height);
+    path.lineTo(16, size.height);
+    path.quadraticBezierTo(0, size.height, 0, size.height - 16);
+    path.lineTo(0, 16);
+    path.quadraticBezierTo(0, 0, 16, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
 class _JournalPageState extends State<JournalPage> {
   List<Journals> journals = [];
 
@@ -52,96 +92,111 @@ class _JournalPageState extends State<JournalPage> {
     await JournalRepository.deleteJournals(id);
     await loadJournals();
   }
-
-  void showDeleteDialogs(){
-
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-            'Journal Apps',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold
-          ),
-        ),
-      ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-              colors: [Colors.lightBlueAccent, Colors.blueAccent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight
-          ),
-        ),
-        child: ListView.builder(
-            itemCount: journals.length,
-            itemBuilder: (context, index){
-              final journal = journals[index];
-              return Card(
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+      body: Column(
+        children: [
+          ClipPath(
+            clipper: HeaderClipper(),
+            child: Container(
+              height: 180,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blueAccent, Colors.lightBlue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
-                    child: Text(
-                      journal.title[0],
-                      style: const TextStyle(color: Colors.white),
+              ),
+              child: const SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.only(left: 20, top: 16),
+                  child: Text(
+                    'Journal Apps',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  title: Text(
-                    journal.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(journal.description),
-                  onTap: (){
-                  _showJournalFormDialog(journals: journal);
-                  },
-                  trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red,),
-                      onPressed: (){
-                        showDialog(
-                            context: context,
-                            builder: (BuildContext context){
-                              return AlertDialog(
-                                title: const Text("Delete Entry"),
-                                content: const Text("Are you sure you want to delete this entry ?"),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(),
-                                    child: const Text("Cancel"),
-                                  ),
-                                  TextButton(
-                                      onPressed: (){
+                ),
+              ),
+            ),
+          ),
+
+          // List journal
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: journals.length,
+              itemBuilder: (context, index) {
+                final journal = journals[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: ClipPath(
+                    clipper: CardClipper(),
+                    child: Container(
+                      color: Colors.white,
+                      child: ListTile(
+                        tileColor: Colors.blue.shade50,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blueAccent,
+                          child: Text(
+                            journal.title[0],
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(
+                          journal.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(journal.description),
+                        onTap: () {
+                          _showJournalFormDialog(journals: journal);
+                        },
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text("Delete Entry"),
+                                  content: const Text(
+                                      "Are you sure you want to delete this entry ?"),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(),
+                                      child: const Text("Cancel"),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
                                         _deleteJournals(journal.id!);
                                         Navigator.pop(context);
                                       },
-                                      child: const Text("Delete")
-                                  )
-                                ],
-                              );
-                            }
-                        );
-                  },
+                                      child: const Text("Delete"),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              );
-            },
-        ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-          child: const Icon(Icons.add),
-          onPressed: (){
-            _showJournalFormDialog();
-          }
+        child: const Icon(Icons.add),
+        onPressed: () {
+          _showJournalFormDialog();
+        },
       ),
     );
   }
